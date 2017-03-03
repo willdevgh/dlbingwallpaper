@@ -2,7 +2,8 @@
 # --*-- encoding: UTF-8 --*--
 
 '''
-The original source code is: https://github.com/rorschachhb/cleanBingDesktop
+Download wallpapers from cn.bing.com
+下载必应壁纸到指定路径下
 '''
 
 import sys
