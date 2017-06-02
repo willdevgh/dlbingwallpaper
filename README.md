@@ -17,3 +17,9 @@ Download wallpapers from cn.bing.com.
 所有的图片信息保存在数据库wallpaper.db中，可以使用SQLiteStudio查看。
 
 目前表info的path字段未使用。
+
+# 用setup.vbs部署
+双击setup.vbs，按照提示选择python安装的路径，下载图片的路径，然后弹出`安装完成！`提示框即安装成功。
+
+# 注意
+脚本使用Python 3
