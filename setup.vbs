@@ -49,6 +49,16 @@ oShellLink.WindowStyle = 1 :'1 默认窗口 3 最大化 7 最小化
 oShellLink.Description = ""
 oShellLink.Save
 
+Rem 5.给浏览器创建桌面快捷方式
+strStartup = WshShell.SpecialFolders("Desktop")
+set oShellLink = WshShell.CreateShortcut(strStartup & "\wallpaperbrowser.lnk")
+oShellLink.TargetPath = strPythonPath & "\python.exe"
+oShellLink.Arguments = strDepPath & "\wallpaperbrowser.py " & strSavePath & " " & strDepPath
+oShellLink.WorkingDirectory = strDepPath
+oShellLink.WindowStyle = 1 :'1 默认窗口 3 最大化 7 最小化
+oShellLink.Description = ""
+oShellLink.Save
+
 MsgBox "安装完成！"
 
 Rem 拷贝文件夹
