@@ -24,11 +24,23 @@ class WallpaperDatabase:
         self._path = path
         self._db_conn = None
         self._db_cur = None
-        pass
+        if not os.path.exists(os.path.join(self._path, self.db_name)):
+            self.create()
 
     @property
     def db_name(self):
         return "wallpaper.db"
+
+    def create(self):
+        sqlstr = '''CREATE TABLE info (
+                startdate    TEXT,
+                enddate      TEXT,
+                fullImageUrl TEXT UNIQUE
+                      PRIMARY KEY,
+                copyright    TEXT
+                );'''
+        db_conn = sqlite3.connect(os.path.join(self._path, self.db_name))
+        db_conn.execute(sqlstr)
 
     def set_auto_commit(self, is_auto=True):
         self._auto_commit = is_auto
