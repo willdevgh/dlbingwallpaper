@@ -10,9 +10,10 @@ import sys
 import xml.etree.ElementTree as ET
 import os
 import os.path as op
-import requests
 import sqlite3
 import contextlib
+
+import requests
 
 
 class WallpaperDatabase:
@@ -61,6 +62,7 @@ class WallpaperDatabase:
         self._db_conn.close()
 
     def save_info(self, start_date, end_date, full_image_url, copyright):
+        copyright = copyright.replace("'", "''")
         self._db_cur.execute("INSERT INTO info VALUES('%s', '%s', '%s', '%s')" \
                              % (start_date, end_date, full_image_url, copyright))
 
@@ -139,7 +141,6 @@ def download_wallpapers():
         for i in range(8, -1, -1):
             print("****************************index: %d" % i)
             # download wallpaper's info
-            # this url supports ipv6, but cn.bing.com doesn't
             xml_url = 'http://az517271.vo.msecnd.net/TodayImageService.svc/HPImageArchive?mkt=zh-cn&idx=%d' % (i)
 
             try:
