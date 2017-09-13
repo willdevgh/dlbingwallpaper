@@ -12,8 +12,11 @@ import os
 import os.path as op
 import sqlite3
 import contextlib
+import asyncio
 
-import requests
+
+import requests # 即将废弃
+import aiohttp
 
 
 class WallpaperDatabase:
@@ -99,79 +102,58 @@ class WallpaperDatabase:
         self._db_conn.commit()
 
 
-def download(full_image_url, save_file_name):
-    image_data = requests.get(full_image_url, stream=True)
+async def get_xml_data_list():
+    # download wallpaper's info
+    xml_url_fmt = 'http://az517271.vo.msecnd.net/TodayImageService.svc/HPImageArchive?mkt=zh-cn&idx={}'
+    xml_data_list = list()
+    xml_url_list = [xml_url_fmt.format(i) for i in range(8, -1, -1)]
+    async with aiohttp.ClientSession() as session:
+        for xml_url in xml_url_list:
+            async with session.get(xml_url) as resp:
+                xml_data = await resp.read()
+            xml_data_list.append(xml_data)
+
+    return xml_data_list
+
+
+async def get_xml_data():
+    pass
+
+
+async def download(full_image_url, save_file_name):
+    #--image_data = requests.get(full_image_url, stream=True)
+    #image_data = await aiohttp.request('GET', full_image_url)
+    async with aiohttp.ClientSession() as session:
+        async with session.get(full_image_url) as resp:
+            image_data = await resp.read()
 
     with open(save_file_name, 'wb') as image_file:
-        for chunk in image_data.iter_content(chunk_size=1024):
-            if chunk:  # filter out keep-alive new chunks
-                image_file.write(chunk)
-                image_file.flush()
-        image_file.close()
+        image_file.write(image_data)
+        image_file.flush()
 
 
-
-def download_wallpapers():
-    print("\nDownload wallpapers from cn.bing.com\n")
-
-    script_path = os.path.abspath('.')
-
-    save_path = script_path
-
-    if len(sys.argv) >= 2:
-        if os.path.isdir(sys.argv[1]):
-            save_path = sys.argv[1]
-
-    if not save_path.endswith('\\'):
-        save_path += '\\'
-
-    if not script_path.endswith('\\'):
-        script_path += '\\'
-
-    # A SQLite database to save every wallpaper's information.
-    db = WallpaperDatabase(script_path, is_auto=False)
-
-    dl_failed = {}
-    sv_failed = {}
-
-    if not op.exists(save_path):
-        os.mkdir(save_path)
-
+async def coro_main(db, save_path):
+    xml_data_list = await get_xml_data_list()
     with db.open_db_context():
-        for i in range(8, -1, -1):
-            print("****************************index: %d" % i)
-            # download wallpaper's info
-            xml_url = 'http://az517271.vo.msecnd.net/TodayImageService.svc/HPImageArchive?mkt=zh-cn&idx=%d' % (i)
-
-            try:
-                xml_data = requests.get(xml_url)
-                root = ET.fromstring(xml_data.text)
-            except requests.exceptions.ConnectionError:
-                print("raise ConnectionError while downloading wallpaper's information.")
-                dl_failed[i] = xml_url + " $ raise ConnectionError."
-                continue
-
+        for xml_data in xml_data_list:
+            root = ET.fromstring(xml_data)
             start_date = root[0].text
             end_date = root[2].text
             full_image_url = root[6].text
             copyright = root[7].text
+            print('%s: %s' % (start_date, copyright))
 
-            print("wallpaper url: [%s]" % full_image_url)
             file_name = start_date + '.jpg'
             save_file_name = op.join(save_path, file_name)
 
             # save file
             if not op.exists(save_file_name):
-                try:
-                    download(full_image_url, save_file_name)
-                    print("Download wallpaper '%s' success!" % os.path.basename(save_file_name))
-                except requests.exceptions.ConnectionError:
-                    print("raise ConnectionError while downloading wallpapers.")
-                    dl_failed[i] = full_image_url + " $ raise ConnectionError."
+                await download(full_image_url, save_file_name)
+                print("Download wallpaper '%s' success!" % os.path.basename(save_file_name))
             else:
                 print("Wallpaper named %s is already exist." % file_name)
                 print("You can find it in path '%s'" % save_path)
-                dl_failed[i] = full_image_url + " $ already exist."
+                #dl_failed[i] = full_image_url + " $ already exist."
 
             # save record
             if not db.record_exist(start_date):
@@ -179,31 +161,27 @@ def download_wallpapers():
                     db.save_info(start_date, end_date, full_image_url, copyright)
                 except sqlite3.IntegrityError:
                     print("raise sqlite3.IntegrityError, duplicate key value violates unique constraint.")
-                    sv_failed[i] = full_image_url + " $ raise sqlite3.IntegrityError."
+                    #sv_failed[i] = full_image_url + " $ raise sqlite3.IntegrityError."
             else:
                 print("Wallpaper named %s's Record is already exist." % file_name)
-                dl_failed[i] = full_image_url + " $ already exist."
+                #dl_failed[i] = full_image_url + " $ already exist."
+            print('-' * 50)
         db.commit()
-
-    print("")
-    if not len(dl_failed) == 0:
-        print("Following wallpapers were downloaded failed:")
-        for k in dl_failed:
-            print("index: %d, url: %s" % (k, dl_failed[k]))
-
-        print("Download finished! You will find some of them in path '%s'." % save_path)
-    else:
-        print("Download finished! You will find all of them in path '%s'." % save_path)
-
-    print("")
-    if not len(sv_failed) == 0:
-        print("Following infos were saved failed:")
-        for k in sv_failed:
-            print("index: %d, url: %s" % (k, sv_failed[k]))
-    else:
-        print("All infos were saved in db!")
 
 
 if __name__ == '__main__':
-    download_wallpapers()
+    print("\nDownload wallpapers from cn.bing.com\n")
+    script_path = os.path.abspath('.')
+    save_path = script_path
+
+    if len(sys.argv) >= 2:
+        if os.path.isdir(sys.argv[1]):
+            save_path = sys.argv[1]
+
+    # A SQLite database to save every wallpaper's information.
+    db = WallpaperDatabase(script_path, is_auto=False)
+
+    loop = asyncio.get_event_loop()
+    result = loop.run_until_complete(coro_main(db, save_path))
+    loop.close()
     input("\nPress any key to exit.")

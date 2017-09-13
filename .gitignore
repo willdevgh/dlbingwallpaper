@@ -2,3 +2,7 @@
 __pycache__/
 *.py[cod]
 *$py.class
+# 测试用
+test.py
+*.jpg
+*.db
