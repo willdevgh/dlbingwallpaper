@@ -6,16 +6,15 @@ Download wallpapers from cn.bing.com
 下载必应壁纸到指定路径下
 '''
 
+
 import sys
-import xml.etree.ElementTree as ET
 import os
 import os.path as op
 import sqlite3
 import contextlib
 import asyncio
+import xml.etree.ElementTree as ET
 
-
-import requests # 即将废弃
 import aiohttp
 
 
@@ -23,8 +22,8 @@ class WallpaperDatabase:
     """ 数据库调用接口
     """
 
-    def __init__(self, path, is_auto=True):
-        self._auto_commit = is_auto
+    def __init__(self, path, auto_commit=True):
+        self._auto_commit = auto_commit
         self._path = path
         self._db_conn = None
         self._db_cur = None
@@ -102,24 +101,6 @@ class WallpaperDatabase:
         self._db_conn.commit()
 
 
-async def get_xml_data_list():
-    # download wallpaper's info
-    xml_url_fmt = 'http://az517271.vo.msecnd.net/TodayImageService.svc/HPImageArchive?mkt=zh-cn&idx={}'
-    xml_data_list = list()
-    xml_url_list = [xml_url_fmt.format(i) for i in range(8, -1, -1)]
-    async with aiohttp.ClientSession() as session:
-        for xml_url in xml_url_list:
-            async with session.get(xml_url) as resp:
-                xml_data = await resp.read()
-            xml_data_list.append(xml_data)
-
-    return xml_data_list
-
-
-async def get_xml_data():
-    pass
-
-
 async def download(full_image_url, save_file_name):
     #--image_data = requests.get(full_image_url, stream=True)
     #image_data = await aiohttp.request('GET', full_image_url)
@@ -132,45 +113,61 @@ async def download(full_image_url, save_file_name):
         image_file.flush()
 
 
-async def coro_main(db, save_path):
-    xml_data_list = await get_xml_data_list()
-    with db.open_db_context():
-        for xml_data in xml_data_list:
-            root = ET.fromstring(xml_data)
-            start_date = root[0].text
-            end_date = root[2].text
-            full_image_url = root[6].text
-            copyright = root[7].text
-            print('%s: %s' % (start_date, copyright))
+async def download_and_save_one(idx, save_path, db):
+    xml_url_fmt = 'http://az517271.vo.msecnd.net/TodayImageService.svc/HPImageArchive?mkt=zh-cn&idx={}'
+    xml_url = xml_url_fmt.format(idx)
 
-            file_name = start_date + '.jpg'
-            save_file_name = op.join(save_path, file_name)
+    async with aiohttp.ClientSession() as session:
+        async with session.get(xml_url) as resp:
+            xml_data = await resp.read()
 
-            # save file
-            if not op.exists(save_file_name):
-                await download(full_image_url, save_file_name)
-                print("Download wallpaper '%s' success!" % os.path.basename(save_file_name))
-            else:
-                print("Wallpaper named %s is already exist." % file_name)
-                print("You can find it in path '%s'" % save_path)
-                #dl_failed[i] = full_image_url + " $ already exist."
+    root = ET.fromstring(xml_data)
+    start_date = root[0].text
+    end_date = root[2].text
+    full_image_url = root[6].text
+    copyright = root[7].text
+    print('%s: %s' % (start_date, copyright))
 
-            # save record
-            if not db.record_exist(start_date):
-                try:
-                    db.save_info(start_date, end_date, full_image_url, copyright)
-                except sqlite3.IntegrityError:
-                    print("raise sqlite3.IntegrityError, duplicate key value violates unique constraint.")
-                    #sv_failed[i] = full_image_url + " $ raise sqlite3.IntegrityError."
-            else:
-                print("Wallpaper named %s's Record is already exist." % file_name)
-                #dl_failed[i] = full_image_url + " $ already exist."
-            print('-' * 50)
-        db.commit()
+    file_name = start_date + '.jpg'
+    save_file_name = op.join(save_path, file_name)
+
+    # save file
+    if not op.exists(save_file_name):
+        await download(full_image_url, save_file_name)
+        print("Download wallpaper '%s' success!" % os.path.basename(save_file_name))
+    else:
+        print("Wallpaper named %s is already exist." % file_name)
+        print("You can find it in path '%s'" % save_path)
+        # dl_failed[i] = full_image_url + " $ already exist."
+
+    # save record
+    if not db.record_exist(start_date):
+        try:
+            db.save_info(start_date, end_date, full_image_url, copyright)
+        except sqlite3.IntegrityError:
+            print("raise sqlite3.IntegrityError, duplicate key value violates unique constraint.")
+            # sv_failed[i] = full_image_url + " $ raise sqlite3.IntegrityError."
+    else:
+        print("Wallpaper named %s's Record is already exist." % file_name)
+        # dl_failed[i] = full_image_url + " $ already exist."
+    print('-' * 50)
+
+
+async def downloader(save_path, db):
+    todo_list = [download_and_save_one(i, save_path, db) for i in range(8, -1, -1)]
+    todo_list_iter = asyncio.as_completed(todo_list)
+    for future in todo_list_iter:
+        await future
+
+def coro_main(save_path, db):
+    loop = asyncio.get_event_loop()
+    coro = downloader(save_path, db)
+    loop.run_until_complete(coro)
+    loop.close()
 
 
 if __name__ == '__main__':
-    print("\nDownload wallpapers from cn.bing.com\n")
+    print("\nDownloading wallpapers from cn.bing.com ...\n")
     script_path = os.path.abspath('.')
     save_path = script_path
 
@@ -179,9 +176,9 @@ if __name__ == '__main__':
             save_path = sys.argv[1]
 
     # A SQLite database to save every wallpaper's information.
-    db = WallpaperDatabase(script_path, is_auto=False)
+    db = WallpaperDatabase(script_path, auto_commit=True)
 
-    loop = asyncio.get_event_loop()
-    result = loop.run_until_complete(coro_main(db, save_path))
-    loop.close()
+    with db.open_db_context():
+        coro_main(save_path, db)
+
     input("\nPress any key to exit.")
