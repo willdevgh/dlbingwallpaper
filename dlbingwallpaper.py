@@ -6,104 +6,36 @@ Download wallpapers from cn.bing.com
 下载必应壁纸到指定路径下
 '''
 
+from database import WallpaperDatabase
 
 import sys
 import os
 import os.path as op
-import sqlite3
-import contextlib
 import asyncio
 import xml.etree.ElementTree as ET
 
 import aiohttp
 
 
-class WallpaperDatabase:
-    """ 数据库调用接口
-    """
+class DlXmlException(Exception):
+    def __init__(self, status, xml_url):
+        self.status = status
+        self.xml_url = xml_url
 
-    def __init__(self, path, auto_commit=True):
-        self._auto_commit = auto_commit
-        self._path = path
-        self._db_conn = None
-        self._db_cur = None
-        if not os.path.exists(os.path.join(self._path, self.db_name)):
-            self.create()
 
-    @property
-    def db_name(self):
-        return "wallpaper.db"
 
-    def create(self):
-        sqlstr = '''CREATE TABLE info (
-                startdate    TEXT,
-                enddate      TEXT,
-                fullImageUrl TEXT UNIQUE
-                      PRIMARY KEY,
-                copyright    TEXT
-                );'''
-        db_conn = sqlite3.connect(os.path.join(self._path, self.db_name))
-        db_conn.execute(sqlstr)
+class DlException(Exception):
+    def __init__(self, full_image_url, save_file_name):
+        self.full_image_url = full_image_url
+        self.save_file_name = save_file_name
 
-    def set_auto_commit(self, is_auto=True):
-        self._auto_commit = is_auto
 
-    @contextlib.contextmanager
-    def open_db_context(self):
-        self.open()
-        yield
-        self.close()
-
-    def open(self):
-        self._db_conn = sqlite3.connect(os.path.join(self._path, self.db_name))
-        self._db_cur = self._db_conn.cursor()
-
-    def close(self):
-        if not self._auto_commit:
-            self.commit()
-        self._db_conn.close()
-
-    def save_info(self, start_date, end_date, full_image_url, copyright):
-        copyright = copyright.replace("'", "''")
-        self._db_cur.execute("INSERT INTO info VALUES('%s', '%s', '%s', '%s')" \
-                             % (start_date, end_date, full_image_url, copyright))
-
-        if self._auto_commit:
-            self._db_conn.commit()
-
-    def get_copyright(self, startdate):
-        copyright_text = 'not found!'
-        sql = "SELECT copyright FROM info WHERE startdate='{}'".format(startdate)
-        self._db_cur.execute(sql)
-        r = self._db_cur.fetchall()
-        if len(r) > 0:
-            copyright_text = r[0][0]
-
-        return copyright_text
-
-    def get_fullImageUrl(self, startdate):
-        fullImageUrl_text = 'not found!'
-        sql = "SELECT fullImageUrl FROM info WHERE startdate='{}'".format(startdate)
-        self._db_cur.execute(sql)
-        r = self._db_cur.fetchall()
-        if len(r) > 0:
-            fullImageUrl_text = r[0][0]
-
-        return fullImageUrl_text
-
-    def record_exist(self, startdate):
-        sql = "SELECT 1 FROM info WHERE startdate='{}'".format(startdate)
-        self._db_cur.execute(sql)
-        r = self._db_cur.fetchall()
-        return len(r) > 0
-
-    def commit(self):
-        self._db_conn.commit()
+class DbException(Exception):
+    def __init__(self, xml_data):
+        self.xml_data = xml_data
 
 
 async def download(full_image_url, save_file_name):
-    #--image_data = requests.get(full_image_url, stream=True)
-    #image_data = await aiohttp.request('GET', full_image_url)
     async with aiohttp.ClientSession() as session:
         async with session.get(full_image_url) as resp:
             image_data = await resp.read()
@@ -114,56 +46,87 @@ async def download(full_image_url, save_file_name):
 
 
 async def download_and_save_one(idx, save_path, db):
+    '''下载并保存一张照片的信息
+        idx=7 和 idx=8 获取到的内容是一样的
+    '''
     xml_url_fmt = 'http://az517271.vo.msecnd.net/TodayImageService.svc/HPImageArchive?mkt=zh-cn&idx={}'
     xml_url = xml_url_fmt.format(idx)
 
     async with aiohttp.ClientSession() as session:
         async with session.get(xml_url) as resp:
-            xml_data = await resp.read()
+            if resp.status == 200:
+                xml_data = await resp.read()
+            else:
+                raise DlXmlException(xml_url)
 
     root = ET.fromstring(xml_data)
     start_date = root[0].text
     end_date = root[2].text
     full_image_url = root[6].text
     copyright = root[7].text
-    print('%s: %s' % (start_date, copyright))
+    #print('%s: %s' % (start_date, copyright))
 
     file_name = start_date + '.jpg'
     save_file_name = op.join(save_path, file_name)
 
     # save file
-    if not op.exists(save_file_name):
-        await download(full_image_url, save_file_name)
-        print("Download wallpaper '%s' success!" % os.path.basename(save_file_name))
+    try:
+        if not op.exists(save_file_name):
+            await download(full_image_url, save_file_name)
+    except Exception as exc:
+        raise DlException(full_image_url, save_file_name) from exc
     else:
-        print("Wallpaper named %s is already exist." % file_name)
-        print("You can find it in path '%s'" % save_path)
-        # dl_failed[i] = full_image_url + " $ already exist."
-
-    # save record
-    if not db.record_exist(start_date):
+        # save record
         try:
-            db.save_info(start_date, end_date, full_image_url, copyright)
-        except sqlite3.IntegrityError:
-            print("raise sqlite3.IntegrityError, duplicate key value violates unique constraint.")
-            # sv_failed[i] = full_image_url + " $ raise sqlite3.IntegrityError."
-    else:
-        print("Wallpaper named %s's Record is already exist." % file_name)
-        # dl_failed[i] = full_image_url + " $ already exist."
-    print('-' * 50)
+            if not db.record_exist(start_date):
+                db.save_info(start_date, end_date, full_image_url, copyright)
+        except Exception as exc:
+            raise DbException(xml_data) from exc
 
 
 async def downloader(save_path, db):
     todo_list = [download_and_save_one(i, save_path, db) for i in range(8, -1, -1)]
     todo_list_iter = asyncio.as_completed(todo_list)
     for future in todo_list_iter:
-        await future
+        try:
+            await future
+        except DlXmlException as dlXmlExc:
+            print("DlXmlException occurred:")
+            print("dlXmlExc.xml_url: [%s]" % dlXmlExc.xml_url)
+        except DlException as dlExc:
+            try:
+                err_msg = dlExc.__cause__.args[0]
+            except IndexError:
+                err_msg = dlExc.__cause__.__class__.__name__
+            if err_msg:
+                msg = ('*** Error for DlException: {}\n'
+                        'dlExc.save_file_name: [{}]\n'
+                        'dlExc.full_image_url: [{}]')
+                print(msg.format(err_msg, dlExc.save_file_name, dlExc.full_image_url))
+            else:
+                print("DlException occurred!")
+        except DbException as dbExc:
+            print("DbException occurred:")
+            print("dbExc.xml_data[0:16]: [%s]" % dbExc.xml_data[0:16])
+            try:
+                err_msg = dlExc.__cause__.args[0]
+            except IndexError:
+                err_msg = dlExc.__cause__.__class__.__name__
+            if err_msg:
+                msg = ('*** Error for DbException: {}\n'
+                        'dbExc.xml_data[0:16]: [{}]')
+                print(msg.format(err_msg, dbExc.xml_data[0:16]))
+            else:
+                print("DbException occurred!")
+
 
 def coro_main(save_path, db):
     loop = asyncio.get_event_loop()
     coro = downloader(save_path, db)
     loop.run_until_complete(coro)
     loop.close()
+
+
 
 
 if __name__ == '__main__':
