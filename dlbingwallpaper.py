@@ -6,8 +6,6 @@ Download wallpapers from cn.bing.com
 下载必应壁纸到指定路径下
 '''
 
-from database import WallpaperDatabase
-
 import sys
 import os
 import os.path as op
@@ -16,12 +14,14 @@ import xml.etree.ElementTree as ET
 
 import aiohttp
 
+from database import WallpaperDatabase
+from spin import Spin
+
 
 class DlXmlException(Exception):
     def __init__(self, status, xml_url):
         self.status = status
         self.xml_url = xml_url
-
 
 
 class DlException(Exception):
@@ -64,7 +64,6 @@ async def download_and_save_one(idx, save_path, db):
     end_date = root[2].text
     full_image_url = root[6].text
     copyright = root[7].text
-    #print('%s: %s' % (start_date, copyright))
 
     file_name = start_date + '.jpg'
     save_file_name = op.join(save_path, file_name)
@@ -85,39 +84,43 @@ async def download_and_save_one(idx, save_path, db):
 
 
 async def downloader(save_path, db):
+    spin = Spin('Downloading wallpapers from cn.bing.com ...')
+    spin.run()
     todo_list = [download_and_save_one(i, save_path, db) for i in range(8, -1, -1)]
     todo_list_iter = asyncio.as_completed(todo_list)
-    for future in todo_list_iter:
-        try:
+    try:
+        for future in todo_list_iter:
             await future
-        except DlXmlException as dlXmlExc:
-            print("DlXmlException occurred:")
-            print("dlXmlExc.xml_url: [%s]" % dlXmlExc.xml_url)
-        except DlException as dlExc:
-            try:
-                err_msg = dlExc.__cause__.args[0]
-            except IndexError:
-                err_msg = dlExc.__cause__.__class__.__name__
-            if err_msg:
-                msg = ('*** Error for DlException: {}\n'
-                        'dlExc.save_file_name: [{}]\n'
-                        'dlExc.full_image_url: [{}]')
-                print(msg.format(err_msg, dlExc.save_file_name, dlExc.full_image_url))
-            else:
-                print("DlException occurred!")
-        except DbException as dbExc:
-            print("DbException occurred:")
-            print("dbExc.xml_data[0:16]: [%s]" % dbExc.xml_data[0:16])
-            try:
-                err_msg = dlExc.__cause__.args[0]
-            except IndexError:
-                err_msg = dlExc.__cause__.__class__.__name__
-            if err_msg:
-                msg = ('*** Error for DbException: {}\n'
-                        'dbExc.xml_data[0:16]: [{}]')
-                print(msg.format(err_msg, dbExc.xml_data[0:16]))
-            else:
-                print("DbException occurred!")
+    except DlXmlException as dlXmlExc:
+        print("DlXmlException occurred:")
+        print("dlXmlExc.xml_url: [%s]" % dlXmlExc.xml_url)
+    except DlException as dlExc:
+        try:
+            err_msg = dlExc.__cause__.args[0]
+        except IndexError:
+            err_msg = dlExc.__cause__.__class__.__name__
+        if err_msg:
+            msg = ('*** Error for DlException: {}\n'
+                    'dlExc.save_file_name: [{}]\n'
+                    'dlExc.full_image_url: [{}]')
+            print(msg.format(err_msg, dlExc.save_file_name, dlExc.full_image_url))
+        else:
+            print("DlException occurred!")
+    except DbException as dbExc:
+        print("DbException occurred:")
+        print("dbExc.xml_data[0:16]: [%s]" % dbExc.xml_data[0:16])
+        try:
+            err_msg = dlExc.__cause__.args[0]
+        except IndexError:
+            err_msg = dlExc.__cause__.__class__.__name__
+        if err_msg:
+            msg = ('*** Error for DbException: {}\n'
+                    'dbExc.xml_data[0:16]: [{}]')
+            print(msg.format(err_msg, dbExc.xml_data[0:16]))
+        else:
+            print("DbException occurred!")
+    finally:
+        spin.exit()
 
 
 def coro_main(save_path, db):
@@ -127,10 +130,8 @@ def coro_main(save_path, db):
     loop.close()
 
 
-
-
 if __name__ == '__main__':
-    print("\nDownloading wallpapers from cn.bing.com ...\n")
+    print("\n")
     script_path = os.path.abspath('.')
     save_path = script_path
 
@@ -140,7 +141,7 @@ if __name__ == '__main__':
 
     # A SQLite database to save every wallpaper's information.
     db = WallpaperDatabase(script_path, auto_commit=True)
-
+    # start!!
     with db.open_db_context():
         coro_main(save_path, db)
 

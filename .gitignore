@@ -2,7 +2,10 @@
 __pycache__/
 *.py[cod]
 *$py.class
-# 测试用
-test.py
 *.jpg
 *.db
+
+# 测试用
+test.py
+# 删除测试用数据
+deldata.bat
