@@ -4,6 +4,7 @@
 import os
 from tkinter import *
 import tkinter.messagebox
+import asyncio
 
 from PIL import Image, ImageTk
 from PIL import ImageFile
@@ -18,7 +19,6 @@ class App:
     def __init__(self, master, image_path, database):
         self._curr_index = 0
         self._master = None
-
         self._master = master
 
         self._image_path = image_path
@@ -32,7 +32,6 @@ class App:
         self._label = Label(master, image=self._photo_image)
         self._label.bind("<Double-Button-1>", self.label_doubleclick)
         self._label.pack(side=TOP, expand=YES)
-
 
         btn_prev = Button(master, text='上一张', fg='green', command=self.prev_image)
         self._master.bind('<Left>', self.prev_image)
@@ -50,6 +49,7 @@ class App:
 
         self._labelmenu_rightclick = Menu(master, tearoff=False)
         self._labelmenu_rightclick.add_command(label='打开路径', command=self.open_path)
+        self._labelmenu_rightclick.add_command(label='重新下载（壁纸）', command=self.redownload)
         master.bind("<Button-3>", self.label_rightclick)
 
     def label_doubleclick(self, event):
@@ -61,12 +61,22 @@ class App:
     def open_path(self):
         os.system('explorer.exe ' + self._image_path)
 
-    # 暂未使用
     def redownload(self):
         curr_image = self._file_list[self._curr_index]
         url = self._db.get_fullImageUrl(curr_image[:-4])
         full_name = os.path.join(self._image_path, curr_image)
-        download(url, full_name)
+
+        copyright_text = self._copyright_text['text']
+        self._copyright_text.configure(text='               下载中...', fg='red')
+        self._copyright_text.update()
+        oldloop = asyncio.get_event_loop()
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(asyncio.wait([download(url, full_name)]))
+        loop.close()
+        asyncio.set_event_loop(oldloop)
+        self._copyright_text.configure(text=copyright_text, fg='black')
+        self._copyright_text.update()
 
     def prev_image(self, event=None):
         if 0 > self._curr_index - 1:
