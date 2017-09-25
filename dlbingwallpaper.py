@@ -124,10 +124,14 @@ async def downloader(save_path, db):
 
 
 def coro_main(save_path, db):
-    loop = asyncio.get_event_loop()
-    coro = downloader(save_path, db)
-    loop.run_until_complete(coro)
-    loop.close()
+    try:
+        loop = asyncio.get_event_loop()
+        coro = downloader(save_path, db)
+        loop.run_until_complete(coro)
+        loop.close()
+    except Exception as exc:
+        msg = "Unexpected error: {}".format(repr(exc))
+        print(msg)
 
 
 if __name__ == '__main__':
@@ -140,7 +144,7 @@ if __name__ == '__main__':
             save_path = sys.argv[1]
 
     # A SQLite database to save every wallpaper's information.
-    db = WallpaperDatabase(script_path, auto_commit=True)
+    db = WallpaperDatabase(script_path)
     # start!!
     with db.open_db_context():
         coro_main(save_path, db)
