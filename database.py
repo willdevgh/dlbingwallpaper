@@ -53,15 +53,14 @@ class WallpaperDatabase:
 
     def save_info(self, start_date, end_date, full_image_url, copyright):
         copyright = copyright.replace("'", "''")
-        self._db_cur.execute("INSERT INTO info VALUES('%s', '%s', '%s', '%s')" \
-                             % (start_date, end_date, full_image_url, copyright))
+        self._db_cur.execute(f"INSERT INTO info VALUES('{start_date}', '{end_date}', '{full_image_url}', '{copyright}')")
 
         if self._auto_commit:
             self._db_conn.commit()
 
     def get_copyright(self, startdate):
         copyright_text = 'not found!'
-        sql = "SELECT copyright FROM info WHERE startdate='{}'".format(startdate)
+        sql = f"SELECT copyright FROM info WHERE startdate='{startdate}'"
         self._db_cur.execute(sql)
         r = self._db_cur.fetchall()
         if len(r) > 0:
@@ -71,7 +70,7 @@ class WallpaperDatabase:
 
     def get_fullImageUrl(self, startdate):
         fullImageUrl_text = 'not found!'
-        sql = "SELECT fullImageUrl FROM info WHERE startdate='{}'".format(startdate)
+        sql = f"SELECT fullImageUrl FROM info WHERE startdate='{startdate}'"
         self._db_cur.execute(sql)
         r = self._db_cur.fetchall()
         if len(r) > 0:
@@ -80,7 +79,7 @@ class WallpaperDatabase:
         return fullImageUrl_text
 
     def record_exist(self, startdate):
-        sql = "SELECT 1 FROM info WHERE startdate='{}'".format(startdate)
+        sql = f"SELECT 1 FROM info WHERE startdate='{startdate}'"
         self._db_cur.execute(sql)
         r = self._db_cur.fetchall()
         return len(r) > 0

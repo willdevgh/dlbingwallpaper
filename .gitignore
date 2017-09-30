@@ -7,5 +7,6 @@ __pycache__/
 
 # 测试用
 test.py
+test.vbs
 # 删除测试用数据
 deldata.bat

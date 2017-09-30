@@ -49,8 +49,7 @@ async def download_and_save_one(idx, save_path, db):
     '''下载并保存一张照片的信息
         idx=7 和 idx=8 获取到的内容是一样的
     '''
-    xml_url_fmt = 'http://az517271.vo.msecnd.net/TodayImageService.svc/HPImageArchive?mkt=zh-cn&idx={}'
-    xml_url = xml_url_fmt.format(idx)
+    xml_url = f'http://az517271.vo.msecnd.net/TodayImageService.svc/HPImageArchive?mkt=zh-cn&idx={idx}'
 
     async with aiohttp.ClientSession() as session:
         async with session.get(xml_url) as resp:
@@ -93,30 +92,30 @@ async def downloader(save_path, db):
             await future
     except DlXmlException as dlXmlExc:
         print("DlXmlException occurred:")
-        print("dlXmlExc.xml_url: [%s]" % dlXmlExc.xml_url)
+        print(f"dlXmlExc.xml_url: [{dlXmlExc.xml_url}]")
     except DlException as dlExc:
         try:
             err_msg = dlExc.__cause__.args[0]
         except IndexError:
             err_msg = dlExc.__cause__.__class__.__name__
         if err_msg:
-            msg = ('*** Error for DlException: {}\n'
-                    'dlExc.save_file_name: [{}]\n'
-                    'dlExc.full_image_url: [{}]')
-            print(msg.format(err_msg, dlExc.save_file_name, dlExc.full_image_url))
+            msg = (f'*** Error for DlException: {err_msg}\n'
+                    f'dlExc.save_file_name: [{dlExc.save_file_name}]\n'
+                    f'dlExc.full_image_url: [{dlExc.full_image_url}]')
+            print(msg)
         else:
             print("DlException occurred!")
     except DbException as dbExc:
         print("DbException occurred:")
-        print("dbExc.xml_data[0:16]: [%s]" % dbExc.xml_data[0:16])
+        print(f"dbExc.xml_data[0:16]: [{dbExc.xml_data[0:16]}]")
         try:
             err_msg = dlExc.__cause__.args[0]
         except IndexError:
             err_msg = dlExc.__cause__.__class__.__name__
         if err_msg:
-            msg = ('*** Error for DbException: {}\n'
-                    'dbExc.xml_data[0:16]: [{}]')
-            print(msg.format(err_msg, dbExc.xml_data[0:16]))
+            msg = (f'*** Error for DbException: {err_msg}\n'
+                    f'dbExc.xml_data[0:16]: [{dbExc.xml_data[0:16]}]')
+            print(msg)
         else:
             print("DbException occurred!")
     finally:
@@ -130,11 +129,14 @@ def coro_main(save_path, db):
         loop.run_until_complete(coro)
         loop.close()
     except Exception as exc:
-        msg = "Unexpected error: {}".format(repr(exc))
-        print(msg)
+        print(f"Unexpected error: {repr(exc)}")
 
 
 if __name__ == '__main__':
+    if sys.version_info.major != 3:
+        input("\nPython3 needed!\nPress any key to exit.")
+        exit(0)
+
     print("\n")
     script_path = os.path.abspath('.')
     save_path = script_path

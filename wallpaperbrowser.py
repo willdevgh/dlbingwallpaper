@@ -15,6 +15,7 @@ from dlbingwallpaper import download
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
+
 class App:
     def __init__(self, master, image_path, database):
         self._curr_index = 0
@@ -44,7 +45,7 @@ class App:
         self._copyright_text = Message(master, text=self.get_copyright_text(self._file_list[self._curr_index]),
                                        width=self._label.winfo_screenwidth())
         self._copyright_text.pack(side=LEFT)
-        self._browse_progess_text = Message(master, text=self.get_browse_progess_text(), width=100)
+        self._browse_progess_text = Message(master, text=self.get_browse_progress_text(), width=100)
         self._browse_progess_text.pack(anchor=E)
 
         self._labelmenu_rightclick = Menu(master, tearoff=False)
@@ -80,20 +81,18 @@ class App:
 
     def prev_image(self, event=None):
         if 0 > self._curr_index - 1:
-            print('out of range, index is too small.')
-            tkinter.messagebox.showinfo('消息', '已经是第一张了')
-            return
+            self._curr_index = len(self._file_list) - 1
+        else:
+            self._curr_index -= 1
 
-        self._curr_index -= 1
         self.update_image(self._curr_index)
 
     def next_image(self, event=None):
         if len(self._file_list) <= self._curr_index + 1:
-            print('out of range, index is too large.')
-            tkinter.messagebox.showinfo('消息', '已经是最后一张了')
-            return
+            self._curr_index = 0
+        else:
+            self._curr_index += 1
 
-        self._curr_index += 1
         self.update_image(self._curr_index)
 
     def update_image(self, index):
@@ -105,13 +104,13 @@ class App:
         self._label.configure(image=self._photo_image)
         self._label.update_idletasks()
         self._copyright_text.configure(text=self.get_copyright_text(curr_image))
-        self._browse_progess_text.configure(text=self.get_browse_progess_text())
+        self._browse_progess_text.configure(text=self.get_browse_progress_text())
 
 
     def get_copyright_text(self, curr_image):
         return self._db.get_copyright(curr_image[:-4])
 
-    def get_browse_progess_text(self):
+    def get_browse_progress_text(self):
         return "{}/{}".format(self._curr_index+1 , len(self._file_list))
 
     def run(self):
@@ -143,4 +142,8 @@ def main():
 
 
 if __name__ == '__main__':
+    if sys.version_info.major != 3:
+        input("\nPython3 needed!\nPress any key to exit.")
+        exit(0)
+
     main()
