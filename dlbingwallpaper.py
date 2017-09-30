@@ -63,15 +63,14 @@ class WallpaperDatabase:
 
     def save_info(self, start_date, end_date, full_image_url, copyright):
         copyright = copyright.replace("'", "''")
-        self._db_cur.execute("INSERT INTO info VALUES('%s', '%s', '%s', '%s')" \
-                             % (start_date, end_date, full_image_url, copyright))
+        self._db_cur.execute(f"INSERT INTO info VALUES('{start_date}', '{end_date}', '{full_image_url}', '{copyright}')")
 
         if self._auto_commit:
             self._db_conn.commit()
 
     def get_copyright(self, startdate):
         copyright_text = 'not found!'
-        sql = "SELECT copyright FROM info WHERE startdate='{}'".format(startdate)
+        sql = f"SELECT copyright FROM info WHERE startdate='{startdate}'"
         self._db_cur.execute(sql)
         r = self._db_cur.fetchall()
         if len(r) > 0:
@@ -81,7 +80,7 @@ class WallpaperDatabase:
 
     def get_fullImageUrl(self, startdate):
         fullImageUrl_text = 'not found!'
-        sql = "SELECT fullImageUrl FROM info WHERE startdate='{}'".format(startdate)
+        sql = f"SELECT fullImageUrl FROM info WHERE startdate='{startdate}'"
         self._db_cur.execute(sql)
         r = self._db_cur.fetchall()
         if len(r) > 0:
@@ -90,7 +89,7 @@ class WallpaperDatabase:
         return fullImageUrl_text
 
     def record_exist(self, startdate):
-        sql = "SELECT 1 FROM info WHERE startdate='{}'".format(startdate)
+        sql = f"SELECT 1 FROM info WHERE startdate='{startdate}'"
         self._db_cur.execute(sql)
         r = self._db_cur.fetchall()
         return len(r) > 0
@@ -139,9 +138,9 @@ def download_wallpapers():
 
     with db.open_db_context():
         for i in range(8, -1, -1):
-            print("****************************index: %d" % i)
+            print(f"****************************index: {i}")
             # download wallpaper's info
-            xml_url = 'http://az517271.vo.msecnd.net/TodayImageService.svc/HPImageArchive?mkt=zh-cn&idx=%d' % (i)
+            xml_url = f"http://az517271.vo.msecnd.net/TodayImageService.svc/HPImageArchive?mkt=zh-cn&idx={i}"
 
             try:
                 xml_data = requests.get(xml_url)
@@ -156,7 +155,7 @@ def download_wallpapers():
             full_image_url = root[6].text
             copyright = root[7].text
 
-            print("wallpaper url: [%s]" % full_image_url)
+            print(f"wallpaper url: [{full_image_url}]")
             file_name = start_date + '.jpg'
             save_file_name = op.join(save_path, file_name)
 
@@ -164,13 +163,13 @@ def download_wallpapers():
             if not op.exists(save_file_name):
                 try:
                     download(full_image_url, save_file_name)
-                    print("Download wallpaper '%s' success!" % os.path.basename(save_file_name))
+                    print(f"Download wallpaper '{os.path.basename(save_file_name)}' success!")
                 except requests.exceptions.ConnectionError:
                     print("raise ConnectionError while downloading wallpapers.")
                     dl_failed[i] = full_image_url + " $ raise ConnectionError."
             else:
-                print("Wallpaper named %s is already exist." % file_name)
-                print("You can find it in path '%s'" % save_path)
+                print(f"Wallpaper named {file_name} is already exist.")
+                print(f"You can find it in path '{save_path}'")
                 dl_failed[i] = full_image_url + " $ already exist."
 
             # save record
@@ -181,7 +180,7 @@ def download_wallpapers():
                     print("raise sqlite3.IntegrityError, duplicate key value violates unique constraint.")
                     sv_failed[i] = full_image_url + " $ raise sqlite3.IntegrityError."
             else:
-                print("Wallpaper named %s's Record is already exist." % file_name)
+                print(f"Wallpaper named {file_name}'s Record is already exist.")
                 dl_failed[i] = full_image_url + " $ already exist."
         db.commit()
 
@@ -189,17 +188,17 @@ def download_wallpapers():
     if not len(dl_failed) == 0:
         print("Following wallpapers were downloaded failed:")
         for k in dl_failed:
-            print("index: %d, url: %s" % (k, dl_failed[k]))
+            print(f"index: {k}, url: {dl_failed[k]}")
 
-        print("Download finished! You will find some of them in path '%s'." % save_path)
+        print(f"Download finished! You will find some of them in path '{save_path}'.")
     else:
-        print("Download finished! You will find all of them in path '%s'." % save_path)
+        print(f"Download finished! You will find all of them in path '{save_path}'.")
 
     print("")
     if not len(sv_failed) == 0:
         print("Following infos were saved failed:")
         for k in sv_failed:
-            print("index: %d, url: %s" % (k, sv_failed[k]))
+            print(f"index: {k}, url: {sv_failed[k]}")
     else:
         print("All infos were saved in db!")
 
