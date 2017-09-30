@@ -205,5 +205,9 @@ def download_wallpapers():
 
 
 if __name__ == '__main__':
+    if sys.version_info.major != 3:
+        input('\nPython3 needed!\nPress any key to exit.')
+        exit(0)
+
     download_wallpapers()
     input("\nPress any key to exit.")
