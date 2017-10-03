@@ -3,15 +3,13 @@
 
 import os
 from tkinter import *
-import tkinter.messagebox
 import asyncio
 
 from PIL import Image, ImageTk
 from PIL import ImageFile
 
-from dlbingwallpaper import WallpaperDatabase
+from utils import WallpaperDatabase
 from dlbingwallpaper import download
-
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 

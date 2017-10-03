@@ -51,7 +51,7 @@ Rem --------------------------------函数定义 end
 
 
 Rem --------------------------------安装脚本：
-DebugVersion = False
+DebugVersion = True
 interpreter = "\pythonw.exe"
 If DebugVersion Then
 	interpreter = "\python.exe"

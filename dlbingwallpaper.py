@@ -14,8 +14,8 @@ import xml.etree.ElementTree as ET
 
 import aiohttp
 
-from database import WallpaperDatabase
-from spin import Spin
+from utils import WallpaperDatabase
+from utils import Spin
 
 
 class DlXmlException(Exception):
