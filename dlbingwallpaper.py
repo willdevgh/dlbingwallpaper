@@ -51,15 +51,19 @@ async def download_and_save_one(idx, save_path, db):
         idx=7 和 idx=8 获取到的内容是一样的
     '''
     xml_url = f'http://az517271.vo.msecnd.net/TodayImageService.svc/HPImageArchive?mkt=zh-cn&idx={idx}'
-	# 这两天出现下载失败的情况，所以加了redo模块
+    # 这两天出现下载失败的情况，所以加了redo模块
     for _ in redo.retrier(sleeptime=1, jitter=0):
-        async with aiohttp.ClientSession() as session:
-            async with session.get(xml_url) as resp:
-                if resp.status == 200:
-                    xml_data = await resp.read()
-                    break;
-				#else:
-				#	raise DlXmlException(resp.status, xml_url)
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(xml_url) as resp:
+                    if resp.status == 200:
+                        xml_data = await resp.read()
+                        break;
+                    #else:
+                    #	raise DlXmlException(resp.status, xml_url)
+        except:
+            # 忽略异常
+            continue
 
     root = ET.fromstring(xml_data)
     start_date = root[0].text
