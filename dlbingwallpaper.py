@@ -35,7 +35,13 @@ class DbException(Exception):
     def __init__(self, xml_data):
         self.xml_data = xml_data
 
+		
+def printExcFileLine():
+	exc_type, exc_obj, exc_tb = sys.exc_info()
+	fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+	print(exc_type, fname, exc_tb.tb_lineno)
 
+	
 async def download(full_image_url, save_file_name):
     async with aiohttp.ClientSession() as session:
         async with session.get(full_image_url) as resp:
@@ -59,7 +65,8 @@ async def download_and_save_one(idx, save_path, db):
                     if resp.status == 200:
                         xml_data = await resp.read()
                         break;
-                    #else:
+                    else:
+                        continue
                     #	raise DlXmlException(resp.status, xml_url)
         except:
             # 忽略异常
@@ -100,6 +107,7 @@ async def downloader(save_path, db):
     except DlXmlException as dlXmlExc:
         print("DlXmlException occurred:")
         print(f"dlXmlExc.xml_url: [{dlXmlExc.xml_url}]")
+        printExcFileLine()
     except DlException as dlExc:
         try:
             err_msg = dlExc.__cause__.args[0]
@@ -112,6 +120,7 @@ async def downloader(save_path, db):
             print(msg)
         else:
             print("DlException occurred!")
+        printExcFileLine()
     except DbException as dbExc:
         print("DbException occurred:")
         print(f"dbExc.xml_data[0:16]: [{dbExc.xml_data[0:16]}]")
@@ -125,6 +134,7 @@ async def downloader(save_path, db):
             print(msg)
         else:
             print("DbException occurred!")
+        printExcFileLine()
     finally:
         spin.exit()
 
@@ -137,6 +147,7 @@ def coro_main(save_path, db):
         loop.close()
     except Exception as exc:
         print(f"Unexpected error: {repr(exc)}")
+        printExcFileLine()
 
 
 if __name__ == '__main__':
@@ -158,4 +169,4 @@ if __name__ == '__main__':
     with db.open_db_context():
         coro_main(save_path, db)
 
-    input("\nPress any key to exit.")
+    input("\nPress ENTER to exit.")
