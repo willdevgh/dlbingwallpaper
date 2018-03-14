@@ -5,7 +5,7 @@ Rem 获取Python3x的Path路径
 Function GetPy3xPath()
 	Set WshShell= CreateObject("WScript.Shell")
 	pathStr = WshShell.ExpandEnvironmentStrings("%path%")
-	pattern = ";(.+\\[Pp]ython3[0-9][/\\]);"
+	pattern = ";?([C-Z]:\\[^:;]+[Pp]ython3[0-9][/\\])[;$]"
 
 	Dim re, match, matches
 	Set re = New RegExp
@@ -17,7 +17,6 @@ Function GetPy3xPath()
 	If re.Test(pathStr) Then
 		retStr = matches(0).SubMatches(0)
 	End If
-	
 	GetPy3xPath = retStr
 End Function
 
@@ -51,7 +50,7 @@ Rem --------------------------------函数定义 end
 
 
 Rem --------------------------------安装脚本：
-DebugVersion = False
+DebugVersion = True
 interpreter = "\pythonw.exe"
 If DebugVersion Then
 	interpreter = "\python.exe"
@@ -75,7 +74,7 @@ If strPythonPath = "" Then
 	End If
     strPythonPath = objFolder.Self.Path
 End If
-MsgBox strPythonPath, vbInformation, "python解释器路径"
+Rem MsgBox strPythonPath & interpreter, vbInformation, "strPythonPath & interpreter"
 If Not fso.FileExists(strPythonPath & interpreter) Then
 	MsgBox "未找到 pythonw.exe, 脚本退出", vbInformation, "错误"
 	Wscript.Quit
