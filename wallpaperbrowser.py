@@ -8,7 +8,7 @@ import asyncio
 from PIL import Image, ImageTk
 from PIL import ImageFile
 
-from .utils import WallpaperDatabase
+from utils import WallpaperDatabase
 from dlbingwallpaper import download_image
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
