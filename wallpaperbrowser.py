@@ -8,8 +8,8 @@ import asyncio
 from PIL import Image, ImageTk
 from PIL import ImageFile
 
-from utils import WallpaperDatabase
-from dlbingwallpaper import download
+from .utils import WallpaperDatabase
+from dlbingwallpaper import download_image
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
@@ -71,7 +71,7 @@ class App:
         oldloop = asyncio.get_event_loop()
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
-        loop.run_until_complete(asyncio.wait([download(url, full_name)]))
+        loop.run_until_complete(asyncio.wait([download_image(url, full_name)]))
         loop.close()
         asyncio.set_event_loop(oldloop)
         self._copyright_text.configure(text=copyright_text, fg='black')
