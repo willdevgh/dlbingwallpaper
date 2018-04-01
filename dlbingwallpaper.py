@@ -1,10 +1,10 @@
 #! python 3
 # --*-- encoding: UTF-8 --*--
 
-'''
+"""
 Download wallpapers from cn.bing.com
 下载必应壁纸到指定路径下
-'''
+"""
 
 import sys
 import os
@@ -35,7 +35,7 @@ class DbException(Exception):
     def __init__(self, xml_data):
         self.xml_data = xml_data
 
-		
+
 def printExcFileLine():
     exc_type, exc_obj, exc_tb = sys.exc_info()
     fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
@@ -43,9 +43,9 @@ def printExcFileLine():
 
 
 async def download_todayimageinfo(idx):
-    '''下载索引内容xml数据
+    """下载索引内容xml数据
         idx=7 和 idx=8 获取到的内容是一样的
-    '''
+    """
     xml_url = f'http://az517271.vo.msecnd.net/TodayImageService.svc/HPImageArchive?mkt=zh-cn&idx={idx}'
     # 这两天出现下载失败的情况，所以加了redo模块
     for _ in redo.retrier(sleeptime=1, jitter=0):
@@ -61,7 +61,7 @@ async def download_todayimageinfo(idx):
             # 忽略异常
             continue
 
-	
+
 async def download_image(full_image_url, save_file_name):
     async with aiohttp.ClientSession() as session:
         async with session.get(full_image_url) as resp:
@@ -73,9 +73,9 @@ async def download_image(full_image_url, save_file_name):
 
 
 async def download_and_save_one(idx, save_path, db):
-    '''下载并保存一张照片的信息
+    """下载并保存一张照片的信息
         idx=7 和 idx=8 获取到的内容是一样的
-    '''
+    """
     xml_data = await download_todayimageinfo(idx)
 
     root = ET.fromstring(xml_data)
@@ -121,8 +121,8 @@ async def downloader(save_path, db):
             err_msg = dlExc.__cause__.__class__.__name__
         if err_msg:
             msg = (f'*** Error for DlException: {err_msg}\n'
-                    f'dlExc.save_file_name: [{dlExc.save_file_name}]\n'
-                    f'dlExc.full_image_url: [{dlExc.full_image_url}]')
+                   f'dlExc.save_file_name: [{dlExc.save_file_name}]\n'
+                   f'dlExc.full_image_url: [{dlExc.full_image_url}]')
             print(msg)
         else:
             print("DlException occurred!")
@@ -136,7 +136,7 @@ async def downloader(save_path, db):
             err_msg = dbExc.__cause__.__class__.__name__
         if err_msg:
             msg = (f'*** Error for DbException: {err_msg}\n'
-                    f'dbExc.xml_data[0:16]: [{dbExc.xml_data[0:16]}]')
+                   f'dbExc.xml_data[0:16]: [{dbExc.xml_data[0:16]}]')
             print(msg)
         else:
             print("DbException occurred!")
@@ -162,7 +162,7 @@ if __name__ == '__main__':
         exit(0)
 
     print("\n")
-    script_path = os.path.abspath('.')
+    script_path = os.path.split(os.path.realpath(__file__))[0]
     save_path = script_path
 
     if len(sys.argv) >= 2:
