@@ -58,25 +58,15 @@ class WallpaperDatabase:
         if self._auto_commit:
             self._db_conn.commit()
 
-    def get_copyright(self, startdate):
-        copyright_text = 'not found!'
-        sql = f"SELECT copyright FROM info WHERE startdate='{startdate}'"
+    def get_content_by_startdate(self, startdate, field):
+        content = 'not found!'
+        sql = f"SELECT {field} FROM info WHERE startdate='{startdate}'"
         self._db_cur.execute(sql)
         r = self._db_cur.fetchall()
-        if len(r) > 0:
-            copyright_text = r[0][0]
+        if r:
+            content = r[0][0]
 
-        return copyright_text
-
-    def get_fullImageUrl(self, startdate):
-        fullImageUrl_text = 'not found!'
-        sql = f"SELECT fullImageUrl FROM info WHERE startdate='{startdate}'"
-        self._db_cur.execute(sql)
-        r = self._db_cur.fetchall()
-        if len(r) > 0:
-            fullImageUrl_text = r[0][0]
-
-        return fullImageUrl_text
+        return content
 
     def record_exist(self, startdate):
         sql = f"SELECT 1 FROM info WHERE startdate='{startdate}'"
