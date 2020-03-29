@@ -4,6 +4,7 @@ __pycache__/
 *$py.class
 *.jpg
 *.db
+*.log
 
 # 测试用
 test.py
