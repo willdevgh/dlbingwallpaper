@@ -11,12 +11,22 @@ import os
 import os.path as op
 import asyncio
 import xml.etree.ElementTree as ET
+import logging
+from logging.handlers import RotatingFileHandler
 
 import aiohttp
 import redo
 
 from utils import WallpaperDatabase
 from utils import Spin
+
+rotating_file_handler = RotatingFileHandler(f'{__file__[:-3]}.log',
+                                            maxBytes=1024 * 1024 * 4, backupCount=3, encoding='utf-8')
+rotating_file_handler.setFormatter(logging.Formatter('%(asctime)s[%(levelname)s]%(filename)s(%(lineno)d): %(message)s'))
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+logger.addHandler(rotating_file_handler)
 
 
 class DlXmlException(Exception):
@@ -36,17 +46,12 @@ class DbException(Exception):
         self.xml_data = xml_data
 
 
-def printExcFileLine():
-    exc_type, exc_obj, exc_tb = sys.exc_info()
-    fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
-    print(exc_type, fname, exc_tb.tb_lineno)
-
-
 async def download_todayimageinfo(idx):
     """下载索引内容xml数据
         idx=7 和 idx=8 获取到的内容是一样的
     """
     xml_url = f'http://az517271.vo.msecnd.net/TodayImageService.svc/HPImageArchive?mkt=zh-cn&idx={idx}'
+
     # 这两天出现下载失败的情况，所以加了redo模块
     for _ in redo.retrier(sleeptime=1, jitter=0):
         try:
@@ -77,7 +82,10 @@ async def download_and_save_one(idx, save_path, db):
         idx=7 和 idx=8 获取到的内容是一样的
     """
     xml_data = await download_todayimageinfo(idx)
+    logger.debug(f"index[{idx}]:\n{xml_data}\n\n")
 
+    if xml_data is None:
+        logger.debug("xml_data is none!!!")
     root = ET.fromstring(xml_data)
     start_date = root[0].text
     end_date = root[2].text
@@ -111,9 +119,8 @@ async def downloader(save_path, db):
         for future in todo_list_iter:
             await future
     except DlXmlException as dlXmlExc: # 该处异常已被忽略
-        print("DlXmlException occurred:")
-        print(f"dlXmlExc.xml_url: [{dlXmlExc.xml_url}]")
-        printExcFileLine()
+        logger.exception("DlXmlException occurred:")
+        logger.exception(f"dlXmlExc.xml_url: [{dlXmlExc.xml_url}]")
     except DlException as dlExc:
         try:
             err_msg = dlExc.__cause__.args[0]
@@ -123,13 +130,12 @@ async def downloader(save_path, db):
             msg = (f'*** Error for DlException: {err_msg}\n'
                    f'dlExc.save_file_name: [{dlExc.save_file_name}]\n'
                    f'dlExc.full_image_url: [{dlExc.full_image_url}]')
-            print(msg)
+            logger.exception(msg)
         else:
-            print("DlException occurred!")
-        printExcFileLine()
+            logger.exception("DlException occurred!")
     except DbException as dbExc:
-        print("DbException occurred:")
-        print(f"dbExc.xml_data[0:16]: [{dbExc.xml_data[0:16]}]")
+        logger.exception("DbException occurred:")
+        logger.exception(f"dbExc.xml_data[0:16]: [{dbExc.xml_data[0:16]}]")
         try:
             err_msg = dbExc.__cause__.args[0]
         except IndexError:
@@ -137,12 +143,20 @@ async def downloader(save_path, db):
         if err_msg:
             msg = (f'*** Error for DbException: {err_msg}\n'
                    f'dbExc.xml_data[0:16]: [{dbExc.xml_data[0:16]}]')
-            print(msg)
+            logger.exception(msg)
         else:
-            print("DbException occurred!")
-        printExcFileLine()
+            logger.exception("DbException occurred!")
     finally:
         spin.exit()
+
+
+def download_one(url, full_name):
+    oldloop = asyncio.get_event_loop()
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    loop.run_until_complete(asyncio.wait([download_image(url, full_name)]))
+    loop.close()
+    asyncio.set_event_loop(oldloop)
 
 
 def coro_main(save_path, db):
@@ -152,8 +166,15 @@ def coro_main(save_path, db):
         loop.run_until_complete(coro)
         loop.close()
     except Exception as exc:
-        print(f"Unexpected error: {repr(exc)}")
-        printExcFileLine()
+        logger.exception(f"Unexpected error: {repr(exc)}")
+
+
+def download_wallpapers(image_path, database_path):
+    # A SQLite database to save every wallpaper's information.
+    db = WallpaperDatabase(database_path)
+    # start!!
+    with db.open_db_context():
+        coro_main(image_path, db)
 
 
 if __name__ == '__main__':
@@ -163,16 +184,11 @@ if __name__ == '__main__':
 
     print("\n")
     script_path = os.path.split(os.path.realpath(__file__))[0]
-    save_path = script_path
-
+    image_path = script_path
     if len(sys.argv) >= 2:
         if os.path.isdir(sys.argv[1]):
-            save_path = sys.argv[1]
+            image_path = sys.argv[1]
 
-    # A SQLite database to save every wallpaper's information.
-    db = WallpaperDatabase(script_path)
-    # start!!
-    with db.open_db_context():
-        coro_main(save_path, db)
+    download_wallpapers(image_path=image_path, database_path=script_path)
 
     input("\nPress ENTER to exit.")
