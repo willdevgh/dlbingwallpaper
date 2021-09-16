@@ -4,6 +4,17 @@
 import os
 import sqlite3
 import contextlib
+from dataclasses import dataclass
+from typing import NamedTuple
+
+
+@dataclass
+class ImageInfo:
+    startdate: str
+    fullstartdate: str
+    enddate: str
+    url: str
+    copyright: str
 
 
 class WallpaperDatabase:
@@ -23,7 +34,7 @@ class WallpaperDatabase:
         return "wallpaper.db"
 
     def create(self):
-        sqlstr = '''CREATE TABLE info (
+        sqlstr = '''CREATE TABLE ImageInfo (
                 startdate    TEXT,
                 enddate      TEXT,
                 fullImageUrl TEXT UNIQUE
@@ -51,16 +62,16 @@ class WallpaperDatabase:
             self.commit()
         self._db_conn.close()
 
-    def save_info(self, start_date, end_date, full_image_url, copyright):
-        copyright = copyright.replace("'", "''")
-        self._db_cur.execute(f"INSERT INTO info VALUES('{start_date}', '{end_date}', '{full_image_url}', '{copyright}')")
-
+    def save_info(self, info: ImageInfo):
+        info.copyright = info.copyright.replace("'", "''")
+        self._db_cur.execute(f"INSERT INTO ImageInfo VALUES('{info.startdate}', '{info.enddate}', "
+                             f"'{info.url}', '{info.copyright}')")
         if self._auto_commit:
             self._db_conn.commit()
 
     def get_content_by_startdate(self, startdate, field):
         content = 'not found!'
-        sql = f"SELECT {field} FROM info WHERE startdate='{startdate}'"
+        sql = f"SELECT {field} FROM ImageInfo WHERE startdate='{startdate}'"
         self._db_cur.execute(sql)
         r = self._db_cur.fetchall()
         if r:
@@ -69,7 +80,7 @@ class WallpaperDatabase:
         return content
 
     def record_exist(self, startdate):
-        sql = f"SELECT 1 FROM info WHERE startdate='{startdate}'"
+        sql = f"SELECT 1 FROM ImageInfo WHERE startdate='{startdate}'"
         self._db_cur.execute(sql)
         r = self._db_cur.fetchall()
         return len(r) > 0

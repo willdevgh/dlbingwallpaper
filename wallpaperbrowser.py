@@ -10,7 +10,7 @@ from PIL import Image, ImageTk
 from PIL import ImageFile
 
 from utils import WallpaperDatabase
-from dlbingwallpaper import download_image
+from wallpaper_downloader import WallpaperDownloader
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
@@ -76,12 +76,9 @@ class App:
         copyright_text = self._copyright_text['text']
         self._copyright_text.configure(text='               下载中...', fg='red')
         self._copyright_text.update()
-        oldloop = asyncio.get_event_loop()
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        loop.run_until_complete(asyncio.wait([download_image(url, full_name)]))
-        loop.close()
-        asyncio.set_event_loop(oldloop)
+
+        WallpaperDownloader.download_image(url, full_name)
+
         self._copyright_text.configure(text=copyright_text, fg='black')
         self._copyright_text.update()
 
