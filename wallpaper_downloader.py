@@ -19,8 +19,8 @@ logger.setLevel(logging.DEBUG)
 logger.addHandler(rotating_file_handler)
 
 IMAGES = 'images'
-STARTDATE, FULLSTARTDATE, ENDDATE, URL, COPYRIGHT = 'startdate', 'fullstartdate', 'enddate', 'url', 'copyright'
-ImageInfo = namedtuple('ImageInfo', [STARTDATE, FULLSTARTDATE, ENDDATE, URL, COPYRIGHT])
+STARTDATE, FULLSTARTDATE, ENDDATE, URL, COPYRIGHT, TITLE = 'startdate', 'fullstartdate', 'enddate', 'url', 'copyright', 'title'
+ImageInfo = namedtuple('ImageInfo', [STARTDATE, FULLSTARTDATE, ENDDATE, URL, COPYRIGHT, TITLE])
 
 
 class WallpaperDownloader(object):
@@ -50,7 +50,7 @@ class WallpaperDownloader(object):
         :return:
         """
         res = requests.get(self.image_archive_url(start_date_index, day_count))
-        d = json.loads(s=res.content.decode(), encoding='utf-8')
+        d = json.loads(s=res.content.decode())
         return d
 
     def image_info_list(self, start_date_index=0, day_count=8) -> list:
@@ -60,9 +60,9 @@ class WallpaperDownloader(object):
             images_info = archive[IMAGES]
             for info in images_info:
                 info_list.append(ImageInfo(info[STARTDATE], info[FULLSTARTDATE], info[ENDDATE],
-                                           f"{self.__host}{info[URL]}", info[COPYRIGHT]))
+                                           f"{self.__host}{info[URL]}", info[COPYRIGHT], info[TITLE]))
         except KeyError:
-            raise KeyError(f'keys: {IMAGES}, {STARTDATE}, {FULLSTARTDATE}, {ENDDATE}, {URL}, {COPYRIGHT}')
+            raise KeyError(f'keys: {IMAGES}, {STARTDATE}, {FULLSTARTDATE}, {ENDDATE}, {URL}, {COPYRIGHT}, {TITLE}')
 
         return info_list
 
@@ -89,4 +89,4 @@ if __name__ == "__main__":
     print(info_list)
     for i, info in enumerate(info_list):
         print(f"downloading: {info.copyright}")
-        downloader.download_image(info.url, f'{i}.jpg')
+        downloader.download_image(info.url, f'{info.title}.jpg')
