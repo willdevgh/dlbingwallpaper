@@ -1,11 +1,14 @@
 #! python 3
 # --*-- encoding: UTF-8 --*--
 
+
+import json
 import logging
 from logging.handlers import RotatingFileHandler
-import xml.etree.ElementTree as ET
-import json
-from collections import namedtuple
+#import xml.etree.ElementTree as ET
+
+
+from utils.database import WallpaperDatabase, ImageInfo, FULLSTARTDATE, ENDDATE, URL, COPYRIGHT, COPYRIGHTLINK, TITLE
 
 # 3rd-party
 import requests
@@ -19,8 +22,6 @@ logger.setLevel(logging.DEBUG)
 logger.addHandler(rotating_file_handler)
 
 IMAGES = 'images'
-STARTDATE, FULLSTARTDATE, ENDDATE, URL, COPYRIGHT, TITLE = 'startdate', 'fullstartdate', 'enddate', 'url', 'copyright', 'title'
-ImageInfo = namedtuple('ImageInfo', [STARTDATE, FULLSTARTDATE, ENDDATE, URL, COPYRIGHT, TITLE])
 
 
 class WallpaperDownloader(object):
@@ -59,10 +60,10 @@ class WallpaperDownloader(object):
         try:
             images_info = archive[IMAGES]
             for info in images_info:
-                info_list.append(ImageInfo(info[STARTDATE], info[FULLSTARTDATE], info[ENDDATE],
-                                           f"{self.__host}{info[URL]}", info[COPYRIGHT], info[TITLE]))
+                info_list.append(ImageInfo(info[FULLSTARTDATE], info[ENDDATE],
+                                           f"{self.__host}{info[URL]}", info[COPYRIGHT], info[COPYRIGHTLINK], info[TITLE]))
         except KeyError:
-            raise KeyError(f'keys: {IMAGES}, {STARTDATE}, {FULLSTARTDATE}, {ENDDATE}, {URL}, {COPYRIGHT}, {TITLE}')
+            raise KeyError(f'keys: {IMAGES}, {FULLSTARTDATE}, {ENDDATE}, {URL}, {COPYRIGHT}, {COPYRIGHTLINK}, {TITLE}')
 
         return info_list
 
@@ -84,9 +85,10 @@ class WallpaperDownloader(object):
 
 if __name__ == "__main__":
     # test
-    downloader = WallpaperDownloader()
-    info_list: list = downloader.image_info_list(day_count=8)
-    print(info_list)
-    for i, info in enumerate(info_list):
-        print(f"downloading: {info.copyright}")
-        downloader.download_image(info.url, f'{info.title}.jpg')
+    
+    pass
+
+
+
+    
+    
