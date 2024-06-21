@@ -55,6 +55,7 @@ class WallpaperDownloader(object):
         return d
 
     def image_info_list(self, start_date_index=0, day_count=8) -> list:
+        
         archive = self.image_archive_dict(start_date_index, day_count)
         info_list = []
         try:
@@ -81,14 +82,3 @@ class WallpaperDownloader(object):
                 if chunk:  # filter out keep-alive new chunks
                     image_file.write(chunk)
                     image_file.flush()
-
-
-if __name__ == "__main__":
-    # test
-    
-    pass
-
-
-
-    
-    
