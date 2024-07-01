@@ -24,12 +24,22 @@ def main():
     database = WallpaperDatabase(os.path.abspath(os.curdir))
     conf = ConfigParser()
     if not conf.read(Path(os.path.abspath(os.curdir)) / CONFIG_FILE):
-        print("config.ini not found!")
+        logger.error("config.ini not found!")
         return
     
+    # [data_save]
+    data_save_section = conf['data_save']
+    if not data_save_section:
+        logger.error("section 'data_save' not found in config.ini!")
+        return
+    
+    save_path = data_save_section.get('path', fallback=os.curdir)
+    save_as_image_file = data_save_section.getboolean('save_as_image_file')
+
+    # [email]
     email_section = conf['email']
     if not email_section:
-        print("section 'email' not found in config.ini!")
+        logger.error("section 'email' not found in config.ini!")
         return
     
     smtp_host = email_section.get('smtp_host')
@@ -38,7 +48,7 @@ def main():
     from_mailbox = email_section.get('from')
     to_mailboxes = email_section.get('to').split(',')
     if False in (bool(smtp_host), bool(smtp_port), bool(auth_password), bool(from_mailbox), bool(to_mailboxes)):
-        print("parameter missing in config.ini!")
+        logger.error("parameter missing in config.ini!")
         return
 
     info_list: list = downloader.image_info_list(day_count=8)
@@ -51,24 +61,25 @@ def main():
         
         for i, info in enumerate(info_list):
             logger.info(f"downloading: {info.copyright}")
-            downloader.download_image(info.url, f"{info.enddate}_{info.title}.jpg")
-            image_file = Path(os.curdir) / f"{info.enddate}_{info.title}.jpg"
+            image_file = Path(save_path) / f"{info.enddate}_{info.title}.jpg"
+            downloader.download_image(info.url, image_file)
             data = image_file.read_bytes()
             b64_data = base64.b64encode(data)
             if database.save_info(info, b64_data):
                 send_email(smtp_host, smtp_port, from_mailbox, auth_password, to_mailboxes, f"[Bing今日美图] {info.title}", (image_file, ))
                 pass
-
-            image_file.unlink(missing_ok=True)
+            
+            if not save_as_image_file:
+                image_file.unlink(missing_ok=True)
         
         # 读取
         '''
-        content = database.get_content_by_enddate('20240614', 'data')
+        content = database.get_content_by_enddate('20240701', 'data')
         image_data = base64.b64decode(content)
         image_file = Path(os.curdir) / 'image_saved.jpg'
         image_file.write_bytes(image_data)
         
-        info, image_data = database.get_record_by_enddate('20240621')
+        info, image_data = database.get_record_by_enddate('20240701')
         print(info.fullstartdate)
         print(info.enddate)
         print(info.url)
