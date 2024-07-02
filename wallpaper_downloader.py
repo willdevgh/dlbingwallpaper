@@ -4,24 +4,16 @@
 
 import json
 import logging
-from logging.handlers import RotatingFileHandler
 #import xml.etree.ElementTree as ET
 
-
-from utils.database import WallpaperDatabase, ImageInfo, FULLSTARTDATE, ENDDATE, URL, COPYRIGHT, COPYRIGHTLINK, TITLE
+from utils.database import ImageInfo, FULLSTARTDATE, ENDDATE, URL, COPYRIGHT, COPYRIGHTLINK, TITLE
 
 # 3rd-party
 import requests
 
-rotating_file_handler = RotatingFileHandler(f'{__file__[:-3]}.log',
-                                            maxBytes=1024 * 1024 * 4, backupCount=3, encoding='utf-8')
-rotating_file_handler.setFormatter(logging.Formatter('%(asctime)s[%(levelname)s]%(filename)s(%(lineno)d): %(message)s'))
+IMAGES = 'images'
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-logger.addHandler(rotating_file_handler)
-
-IMAGES = 'images'
 
 
 class WallpaperDownloader(object):
@@ -61,6 +53,7 @@ class WallpaperDownloader(object):
         try:
             images_info = archive[IMAGES]
             for info in images_info:
+                logger.debug(info)
                 info_list.append(ImageInfo(info[FULLSTARTDATE], info[ENDDATE],
                                            f"{self.__host}{info[URL]}", info[COPYRIGHT], info[COPYRIGHTLINK], info[TITLE]))
         except KeyError:

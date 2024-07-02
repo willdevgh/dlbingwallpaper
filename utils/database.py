@@ -2,12 +2,16 @@
 # --*-- encoding: UTF-8 --*--
 
 import os
+import logging
 import sqlite3
 import contextlib
 from collections import namedtuple
 
 FULLSTARTDATE, ENDDATE, URL, COPYRIGHT, COPYRIGHTLINK, TITLE = 'fullstartdate', 'enddate', 'url', 'copyright', 'copyrightlink', 'title'
 ImageInfo = namedtuple('ImageInfo', [FULLSTARTDATE, ENDDATE, URL, COPYRIGHT, COPYRIGHTLINK, TITLE])
+
+logger = logging.getLogger(__name__)
+
 
 class WallpaperDatabase:
     """ 数据库调用接口
@@ -19,6 +23,7 @@ class WallpaperDatabase:
         self._db_conn = None
         self._db_cur = None
         if not os.path.exists(os.path.join(self._path, self.db_name)):
+            logger.info(f"database file(*.db) not exist! create database file in path: {self._path}")
             self.create()
 
     @property
@@ -39,6 +44,7 @@ class WallpaperDatabase:
                 title    TEXT,
                 data    BLOB
                 );'''
+        logger.debug(sqlstr)
         db_conn = sqlite3.connect(os.path.join(self._path, self.db_name))
         db_conn.execute(sqlstr)
 
@@ -64,31 +70,35 @@ class WallpaperDatabase:
         try:
             #self._db_cur.execute(f"INSERT INTO {self.table_name_image_info} VALUES('{fullstartdate}', '{enddate}', '{url}', '{copyright}', '{copyrightlink}', '{title}', {data})")
             sqlstr = f"INSERT INTO {self.table_name_image_info} VALUES(?,?,?,?,?,?,?);"
+            logger.debug(sqlstr)
             self._db_cur.execute(sqlstr, (info.fullstartdate, info.enddate, info.url, info.copyright.replace("'", "''"), info.copyrightlink, info.title, data))
-
             if self._auto_commit:
                 self._db_conn.commit()
             
             return True
-        except (sqlite3.IntegrityError, sqlite3.DatabaseError):
+        except sqlite3.DatabaseError as e:
+            logger.error(f"sqlite3.DatabaseError: errorcode: {e.sqlite_errorcode}, errorname: {e.sqlite_errorname}")
             return False
 
     def get_content_by_enddate(self, enddate, field):
-        sql = f"SELECT {field} FROM {self.table_name_image_info} WHERE enddate='{enddate}'"
-        self._db_cur.execute(sql)
+        sqlstr = f"SELECT {field} FROM {self.table_name_image_info} WHERE enddate='{enddate}'"
+        logger.debug(sqlstr)
+        self._db_cur.execute(sqlstr)
         r = self._db_cur.fetchone()
         return None if r is None else r[0]
     
     def get_record_by_enddate(self, enddate) -> tuple[ImageInfo, bytes]:
-        sql = f"SELECT * FROM {self.table_name_image_info} WHERE enddate='{enddate}'"
-        self._db_cur.execute(sql)
+        sqlstr = f"SELECT * FROM {self.table_name_image_info} WHERE enddate='{enddate}'"
+        logger.debug(sqlstr)
+        self._db_cur.execute(sqlstr)
         r = self._db_cur.fetchone()
         info = ImageInfo(*r[:-1])
         return info, r[6]
 
     def record_exist(self, enddate):
-        sql = f"SELECT 1 FROM {self.table_name_image_info} WHERE enddate='{enddate}'"
-        self._db_cur.execute(sql)
+        sqlstr = f"SELECT 1 FROM {self.table_name_image_info} WHERE enddate='{enddate}'"
+        logger.debug(sqlstr)
+        self._db_cur.execute(sqlstr)
         r = self._db_cur.fetchone()
         return r is not None
 

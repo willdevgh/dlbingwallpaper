@@ -4,20 +4,24 @@ from email.mime.text import MIMEText
 from email.mime.image import MIMEImage
 from email.mime.multipart import MIMEMultipart
 from email.header import Header
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 def send_email(host, port, sender, auth_password, receivers, subject, wallpapers):
     """用于将墙纸作为邮件附件发送至指定邮箱
 
     Args:
-        host (str): _description_
-        port (int): _description_
-        sender (str): _description_
-        auth_password (str): _description_
-        receivers (list[str]): _description_
-        subject (str): _description_
-        wallpapers (list[str]): _description_
+        host (str): 发送邮件的服务器
+        port (int): 端口号
+        sender (str): 发送方邮箱
+        auth_password (str): 授权密码
+        receivers (list[str]): 接收方邮箱列表
+        subject (str): 邮件主题
+        wallpapers (list[str]): 附件墙纸图片列表
     """
-
+    logger.debug(f"send email, subject: {subject}, host: {host}, port: {port}, from: {sender}, to: {receivers}")
     # 构建MIMEMultipart对象代表邮件本身，可以往里面添加文本、图片、附件等
     mm = MIMEMultipart('related')
     # 设置发送者,注意严格遵守格式,里面邮箱为发件人邮箱
@@ -39,7 +43,7 @@ def send_email(host, port, sender, auth_password, receivers, subject, wallpapers
     # 设置发件人邮箱的域名和端口
     smtp.connect(host, port)
     # 可以打印出和SMTP服务器交互的所有信息
-    smtp.set_debuglevel(1)
+    #smtp.set_debuglevel(1)
     smtp.starttls()
     # 登录邮箱，参数1：邮箱地址，参数2：邮箱授权码
     smtp.login(sender, auth_password)
