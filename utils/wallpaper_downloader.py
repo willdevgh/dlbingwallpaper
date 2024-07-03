@@ -6,7 +6,7 @@ import json
 import logging
 #import xml.etree.ElementTree as ET
 
-from utils.database import ImageInfo, FULLSTARTDATE, ENDDATE, URL, COPYRIGHT, COPYRIGHTLINK, TITLE
+from .database import ImageInfo, FULLSTARTDATE, ENDDATE, URL, COPYRIGHT, COPYRIGHTLINK, TITLE
 
 # 3rd-party
 import requests

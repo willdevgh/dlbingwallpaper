@@ -4,7 +4,7 @@ from pathlib import Path
 from configparser import ConfigParser
 import logging.config
 
-from wallpaper_downloader import WallpaperDownloader
+from utils.wallpaper_downloader import WallpaperDownloader
 from utils.database import WallpaperDatabase
 from utils.email import send_email
 
@@ -49,45 +49,31 @@ def main():
         logger.error("parameter missing in config.ini!")
         return
 
-    info_list: list = downloader.image_info_list(day_count=8)
+    try:
+        info_list: list = downloader.image_info_list(day_count=8)
 
-    with database.open_db_context():
-        # 下载 & 保存
-        for i, info in enumerate(info_list):
-            logger.info(f"downloading: {info.enddate} {info.copyright}")
-            if database.record_exist(info.enddate):
-                logger.info('wallpaper exist, skip.')
-                continue
+        with database.open_db_context():
+            # 下载 & 保存
+            for info in info_list:
+                logger.info(f"downloading: {info.enddate} {info.copyright}")
+                if database.record_exist(info.enddate):
+                    logger.info('wallpaper exist, skip.')
+                    continue
 
-            image_file = Path(save_path) / f"{info.enddate}_{info.title}.jpg"
-            downloader.download_image(info.url, image_file)
-            data = image_file.read_bytes()
-            b64_data = base64.b64encode(data)
-            if database.save_info(info, b64_data):
-                send_email(smtp_host, smtp_port, from_mailbox, auth_password, to_mailboxes, f"[Bing今日美图] {info.title}", (image_file, ))
-                logger.info("email has been sent to the specified mailbox.")
-            
-            if not save_as_image_file:
-                image_file.unlink(missing_ok=True)
-        
-        # 读取
-        '''
-        content = database.get_content_by_enddate('20240701', 'data')
-        image_data = base64.b64decode(content)
-        image_file = Path(os.curdir) / 'image_saved.jpg'
-        image_file.write_bytes(image_data)
-        
-        info, image_data = database.get_record_by_enddate('20240701')
-        print(info.fullstartdate)
-        print(info.enddate)
-        print(info.url)
-        print(info.copyright)
-        print(info.copyrightlink)
-        print(info.title)
-        image_data = base64.b64decode(image_data)
-        image_file = Path(os.curdir) / "20240621.jpg"
-        image_file.write_bytes(image_data)
-        '''
+                image_file = Path(save_path) / f"{info.enddate}_{info.title}.jpg"
+                downloader.download_image(info.url, image_file)
+                data = image_file.read_bytes()
+                b64_data = base64.b64encode(data)
+                if database.save_info(info, b64_data):
+                    send_email(smtp_host, smtp_port, from_mailbox, auth_password, to_mailboxes, f"[Bing今日美图] {info.title}", (image_file, ))
+                    logger.info("email has been sent to the specified mailbox.")
+                
+                if not save_as_image_file:
+                    image_file.unlink(missing_ok=True)
+    except Exception as e:
+        logger.exception(f"exception: \n{e}")
+    
     logger.info(f"{SCRIPT_NAME} exit.")
 
+# Run this script
 main()
