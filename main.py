@@ -18,8 +18,7 @@ logger = logging.getLogger('main')
 
 def main():
     logger.info(f"{SCRIPT_NAME} start running!")
-    downloader = WallpaperDownloader()
-    database = WallpaperDatabase(os.path.abspath(os.curdir))
+    
     conf = ConfigParser()
     if not conf.read(Path(os.path.abspath(os.curdir)) / CONFIG_FILE):
         logger.error("config.ini not found!")
@@ -31,7 +30,7 @@ def main():
         logger.error("section 'data_save' not found in config.ini!")
         return
     
-    save_path = data_save_section.get('path', fallback=os.curdir)
+    save_path = Path(data_save_section.get('path', fallback=os.curdir))
     save_as_image_file = data_save_section.getboolean('save_as_image_file')
 
     # [email]
@@ -49,6 +48,9 @@ def main():
         logger.error("parameter missing in config.ini!")
         return
 
+    downloader = WallpaperDownloader()
+    database = WallpaperDatabase(str(save_path.absolute()))
+
     try:
         info_list: list = downloader.image_info_list(day_count=8)
 
@@ -60,7 +62,7 @@ def main():
                     logger.info('wallpaper exist, skip.')
                     continue
 
-                image_file = Path(save_path) / f"{info.enddate}_{info.title}.jpg"
+                image_file = save_path / f"{info.enddate}_{info.title}.jpg"
                 downloader.download_image(info.url, image_file)
                 data = image_file.read_bytes()
                 b64_data = base64.b64encode(data)

@@ -1,4 +1,4 @@
 from utils.database import WallpaperDatabase
-from utils.spin import Spin
+from utils.wallpaper_downloader import WallpaperDownloader
 
-__all__ = ["WallpaperDatabase", "Spin", ]
+__all__ = ['WallpaperDatabase', 'WallpaperDownloader']
