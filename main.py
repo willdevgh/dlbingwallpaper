@@ -9,10 +9,11 @@ from utils.database import WallpaperDatabase
 from utils.email import send_email
 
 SCRIPT_NAME = 'DLBINGWALLPAPER'
+SCRIPT_PATH = Path(os.path.abspath(os.curdir))
 CONFIG_FILE = 'config.ini'
 LOGGING_CONF = 'logging.conf'
 
-logging.config.fileConfig(f'./{LOGGING_CONF}')
+logging.config.fileConfig(SCRIPT_PATH / LOGGING_CONF)
 logger = logging.getLogger('main')
 
 
@@ -20,7 +21,7 @@ def main():
     logger.info(f"{SCRIPT_NAME} start running!")
     
     conf = ConfigParser()
-    if not conf.read(Path(os.path.abspath(os.curdir)) / CONFIG_FILE):
+    if not conf.read(SCRIPT_PATH / CONFIG_FILE):
         logger.error("config.ini not found!")
         return
     
