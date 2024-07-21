@@ -1,4 +1,4 @@
 # dlbingwallpaper
-下载必应(cn.bing.com)壁纸。
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
-本想重构，但最终估计得重写了
+下载必应(cn.bing.com)壁纸。
