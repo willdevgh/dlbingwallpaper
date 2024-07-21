@@ -20,18 +20,18 @@ logger = logging.getLogger('main')
 def main():
     logger.info(f"{SCRIPT_NAME} start running!")
     logger.info(f"path: {SCRIPT_PATH}")
-    
+
     conf = ConfigParser()
     if not conf.read(SCRIPT_PATH / CONFIG_FILE):
         logger.error("config.ini not found!")
         return
-    
+
     # [data_save]
     data_save_section = conf['data_save']
     if not data_save_section:
         logger.error("section 'data_save' not found in config.ini!")
         return
-    
+
     save_path = Path(data_save_section.get('path', fallback=os.curdir))
     save_as_image_file = data_save_section.getboolean('save_as_image_file')
 
@@ -40,13 +40,19 @@ def main():
     if not email_section:
         logger.error("section 'email' not found in config.ini!")
         return
-    
+
     smtp_host = email_section.get('smtp_host')
     smtp_port = email_section.getint('smtp_port')
     auth_password = email_section.get('auth_password')
     from_mailbox = email_section.get('from')
     to_mailboxes = email_section.get('to').split(',')
-    if False in (bool(smtp_host), bool(smtp_port), bool(auth_password), bool(from_mailbox), bool(to_mailboxes)):
+    if False in (
+        bool(smtp_host),
+        bool(smtp_port),
+        bool(auth_password),
+        bool(from_mailbox),
+        bool(to_mailboxes),
+    ):
         logger.error("parameter missing in config.ini!")
         return
 
@@ -69,15 +75,24 @@ def main():
                 data = image_file.read_bytes()
                 b64_data = base64.b64encode(data)
                 if database.save_info(info, b64_data):
-                    send_email(smtp_host, smtp_port, from_mailbox, auth_password, to_mailboxes, f"[Bing今日美图] {info.title}", (image_file, ))
+                    send_email(
+                        smtp_host,
+                        smtp_port,
+                        from_mailbox,
+                        auth_password,
+                        to_mailboxes,
+                        f"[Bing今日美图] {info.title}",
+                        (image_file,),
+                    )
                     logger.info("email has been sent to the specified mailbox.")
-                
+
                 if not save_as_image_file:
                     image_file.unlink(missing_ok=True)
     except Exception as e:
         logger.exception(f"exception: \n{e}")
-    
+
     logger.info(f"{SCRIPT_NAME} exit.")
+
 
 # Run this script
 main()
