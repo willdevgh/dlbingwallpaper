@@ -7,15 +7,23 @@ import sqlite3
 import contextlib
 from collections import namedtuple
 
-FULLSTARTDATE, ENDDATE, URL, COPYRIGHT, COPYRIGHTLINK, TITLE = 'fullstartdate', 'enddate', 'url', 'copyright', 'copyrightlink', 'title'
-ImageInfo = namedtuple('ImageInfo', [FULLSTARTDATE, ENDDATE, URL, COPYRIGHT, COPYRIGHTLINK, TITLE])
+FULLSTARTDATE, ENDDATE, URL, COPYRIGHT, COPYRIGHTLINK, TITLE = (
+    'fullstartdate',
+    'enddate',
+    'url',
+    'copyright',
+    'copyrightlink',
+    'title',
+)
+ImageInfo = namedtuple(
+    'ImageInfo', [FULLSTARTDATE, ENDDATE, URL, COPYRIGHT, COPYRIGHTLINK, TITLE]
+)
 
 logger = logging.getLogger(__name__)
 
 
 class WallpaperDatabase:
-    """ 数据库调用接口
-    """
+    """数据库调用接口"""
 
     def __init__(self, path, auto_commit=True):
         self._auto_commit = auto_commit
@@ -23,13 +31,15 @@ class WallpaperDatabase:
         self._db_conn = None
         self._db_cur = None
         if not os.path.exists(os.path.join(self._path, self.db_name)):
-            logger.info(f"database file(*.db) not exist! create database file in path: {self._path}")
+            logger.info(
+                f"database file(*.db) not exist! create database file in path: {self._path}"
+            )
             self.create()
 
     @property
     def db_name(self):
         return "wallpaper.db"
-    
+
     @property
     def table_name_image_info(self):
         return "TblImageInfo"
@@ -68,16 +78,29 @@ class WallpaperDatabase:
 
     def save_info(self, info: ImageInfo, data: bytes) -> bool:
         try:
-            #self._db_cur.execute(f"INSERT INTO {self.table_name_image_info} VALUES('{fullstartdate}', '{enddate}', '{url}', '{copyright}', '{copyrightlink}', '{title}', {data})")
+            # self._db_cur.execute(f"INSERT INTO {self.table_name_image_info} VALUES('{fullstartdate}', '{enddate}', '{url}', '{copyright}', '{copyrightlink}', '{title}', {data})")
             sqlstr = f"INSERT INTO {self.table_name_image_info} VALUES(?,?,?,?,?,?,?);"
             logger.debug(sqlstr)
-            self._db_cur.execute(sqlstr, (info.fullstartdate, info.enddate, info.url, info.copyright.replace("'", "''"), info.copyrightlink, info.title, data))
+            self._db_cur.execute(
+                sqlstr,
+                (
+                    info.fullstartdate,
+                    info.enddate,
+                    info.url,
+                    info.copyright.replace("'", "''"),
+                    info.copyrightlink,
+                    info.title,
+                    data,
+                ),
+            )
             if self._auto_commit:
                 self._db_conn.commit()
-            
+
             return True
         except sqlite3.DatabaseError as e:
-            logger.error(f"sqlite3.DatabaseError: errorcode: {e.sqlite_errorcode}, errorname: {e.sqlite_errorname}")
+            logger.error(
+                f"sqlite3.DatabaseError: errorcode: {e.sqlite_errorcode}, errorname: {e.sqlite_errorname}"
+            )
             return False
 
     def get_content_by_enddate(self, enddate, field):
@@ -86,7 +109,7 @@ class WallpaperDatabase:
         self._db_cur.execute(sqlstr)
         r = self._db_cur.fetchone()
         return None if r is None else r[0]
-    
+
     def get_record_by_enddate(self, enddate) -> tuple[ImageInfo, bytes]:
         sqlstr = f"SELECT * FROM {self.table_name_image_info} WHERE enddate='{enddate}'"
         logger.debug(sqlstr)

@@ -5,9 +5,18 @@
 import json
 import logging
 from pathlib import Path
-#import xml.etree.ElementTree as ET
 
-from .database import ImageInfo, FULLSTARTDATE, ENDDATE, URL, COPYRIGHT, COPYRIGHTLINK, TITLE
+# import xml.etree.ElementTree as ET
+
+from .database import (
+    ImageInfo,
+    FULLSTARTDATE,
+    ENDDATE,
+    URL,
+    COPYRIGHT,
+    COPYRIGHTLINK,
+    TITLE,
+)
 
 # 3rd-party
 import requests
@@ -48,22 +57,32 @@ class WallpaperDownloader(object):
         return d
 
     def image_info_list(self, start_date_index=0, day_count=8) -> list:
-        
+
         archive = self.image_archive_dict(start_date_index, day_count)
         info_list = []
         try:
             images_info = archive[IMAGES]
             for info in images_info:
                 logger.debug(info)
-                info_list.append(ImageInfo(info[FULLSTARTDATE], info[ENDDATE],
-                                           f"{self.__host}{info[URL]}", info[COPYRIGHT], info[COPYRIGHTLINK], info[TITLE]))
+                info_list.append(
+                    ImageInfo(
+                        info[FULLSTARTDATE],
+                        info[ENDDATE],
+                        f"{self.__host}{info[URL]}",
+                        info[COPYRIGHT],
+                        info[COPYRIGHTLINK],
+                        info[TITLE],
+                    )
+                )
         except KeyError:
-            raise KeyError(f'keys: {IMAGES}, {FULLSTARTDATE}, {ENDDATE}, {URL}, {COPYRIGHT}, {COPYRIGHTLINK}, {TITLE}')
+            raise KeyError(
+                f'keys: {IMAGES}, {FULLSTARTDATE}, {ENDDATE}, {URL}, {COPYRIGHT}, {COPYRIGHTLINK}, {TITLE}'
+            )
 
         return info_list
 
     @staticmethod
-    def download_image(image_url: str, save_file_name: Path|str):
+    def download_image(image_url: str, save_file_name: Path | str):
         """
         下载图片
         :param image_url:

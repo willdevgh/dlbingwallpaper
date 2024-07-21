@@ -8,6 +8,7 @@ import sys
 
 class Spin:
     '''running... [spin]'''
+
     def __init__(self, msg='running...', behind=True):
         self._msg = msg
         self._behind = behind
@@ -16,14 +17,16 @@ class Spin:
     async def __run(self):
         write, flush = sys.stdout.write, sys.stdout.flush
         for char in itertools.cycle('|/-\\'):
-            if self._behind:  status = self._msg + ' ' + char
-            else:   status = char + ' ' + self._msg
+            if self._behind:
+                status = self._msg + ' ' + char
+            else:
+                status = char + ' ' + self._msg
             backward_len = len(status)
             write(status)
             flush()
             write('\x08' * backward_len)
             try:
-                await asyncio.sleep(.1)
+                await asyncio.sleep(0.1)
             except asyncio.CancelledError:
                 break
         write(' ' * backward_len + '\x08' * backward_len)
