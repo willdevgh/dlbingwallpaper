@@ -4,7 +4,7 @@ from pathlib import Path
 from configparser import ConfigParser
 import logging.config
 
-from utils.wallpaper_downloader import WallpaperDownloader
+from utils.wallpaper_downloader import ImageInfoDownloader, download_image
 from utils.database import WallpaperDatabase
 from utils.email import send_email
 
@@ -26,7 +26,7 @@ def main():
         logger.error("config.ini not found!")
         return
 
-    # [data_save]
+    # section [data_save]
     data_save_section = conf['data_save']
     if not data_save_section:
         logger.error("section 'data_save' not found in config.ini!")
@@ -35,7 +35,10 @@ def main():
     save_path = Path(data_save_section.get('path', fallback=os.curdir))
     save_as_image_file = data_save_section.getboolean('save_as_image_file')
 
-    # [email]
+    if not save_path.exists():
+        save_path.mkdir()
+
+    # section [email]
     email_section = conf['email']
     if not email_section:
         logger.error("section 'email' not found in config.ini!")
@@ -56,8 +59,8 @@ def main():
         logger.error("parameter missing in config.ini!")
         return
 
-    downloader = WallpaperDownloader()
-    database = WallpaperDatabase(str(save_path.absolute()))
+    downloader = ImageInfoDownloader()
+    database = WallpaperDatabase(save_path.absolute())
 
     try:
         info_list: list = downloader.image_info_list(day_count=8)
@@ -71,7 +74,7 @@ def main():
                     continue
 
                 image_file = save_path / f"{info.enddate}_{info.title}.jpg"
-                downloader.download_image(info.url, image_file)
+                download_image(info.url, image_file)
                 data = image_file.read_bytes()
                 b64_data = base64.b64encode(data)
                 if database.save_info(info, b64_data):

@@ -1,4 +1,4 @@
 from utils.database import WallpaperDatabase
-from utils.wallpaper_downloader import WallpaperDownloader
+from utils.wallpaper_downloader import ImageInfoDownloader
 
-__all__ = ['WallpaperDatabase', 'WallpaperDownloader']
+__all__ = ['WallpaperDatabase', 'ImageInfoDownloader']

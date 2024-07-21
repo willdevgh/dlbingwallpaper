@@ -1,6 +1,7 @@
 #! python 3
 # --*-- encoding: UTF-8 --*--
 
+from typing import Sequence
 from pathlib import PurePath
 import smtplib
 from email.mime.text import MIMEText
@@ -12,7 +13,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def send_email(host, port, sender, auth_password, receivers, subject, wallpapers):
+def send_email(host: str, port: int, sender: str, auth_password: str, receivers: Sequence[str], subject: str, wallpapers: Sequence[str]) -> None:
     """用于将墙纸作为邮件附件发送至指定邮箱
 
     Args:
@@ -24,9 +25,7 @@ def send_email(host, port, sender, auth_password, receivers, subject, wallpapers
         subject (str): 邮件主题
         wallpapers (list[str]): 附件墙纸图片列表
     """
-    logger.debug(
-        f"send email, subject: {subject}, host: {host}, port: {port}, from: {sender}, to: {receivers}"
-    )
+    logger.debug(f"send email, subject: {subject}, host: {host}, port: {port}, from: {sender}, to: {receivers}")
     # 构建MIMEMultipart对象代表邮件本身，可以往里面添加文本、图片、附件等
     mm = MIMEMultipart('related')
     # 设置发送者,注意严格遵守格式,里面邮箱为发件人邮箱
