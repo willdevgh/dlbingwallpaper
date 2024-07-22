@@ -5,7 +5,7 @@ from configparser import ConfigParser
 import logging.config
 
 from utils.wallpaper_downloader import ImageInfoDownloader, download_image
-from utils.database import WallpaperDatabase
+from utils.database import WallpaperDatabase, ImageInfo
 from utils.email import send_email
 
 SCRIPT_NAME = 'DLBINGWALLPAPER'
@@ -63,7 +63,7 @@ def main():
     database = WallpaperDatabase(save_path.absolute())
 
     try:
-        info_list: list = downloader.image_info_list(day_count=8)
+        info_list: list[ImageInfo] = downloader.image_info_list(day_count=8)
 
         with database.open_db_context():
             # 下载 & 保存
@@ -85,7 +85,8 @@ def main():
                         auth_password,
                         to_mailboxes,
                         f"[Bing今日美图] {info.title}",
-                        (image_file,),
+                        image_file,
+                        info.copyright
                     )
                     logger.info("email has been sent to the specified mailbox.")
 

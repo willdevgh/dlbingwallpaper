@@ -13,7 +13,16 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def send_email(host: str, port: int, sender: str, auth_password: str, receivers: Sequence[str], subject: str, wallpapers: Sequence[str]) -> None:
+def send_email(
+    host: str,
+    port: int,
+    sender: str,
+    auth_password: str,
+    receivers: Sequence[str],
+    subject: str,
+    wallpaper: str,
+    copyright: str,
+) -> None:
     """用于将墙纸作为邮件附件发送至指定邮箱
 
     Args:
@@ -25,7 +34,7 @@ def send_email(host: str, port: int, sender: str, auth_password: str, receivers:
         subject (str): 邮件主题
         wallpapers (list[str]): 附件墙纸图片列表
     """
-    logger.debug(f"send email, subject: {subject}, host: {host}, port: {port}, from: {sender}, to: {receivers}")
+    logger.debug(f"send email to: {receivers}")
     # 构建MIMEMultipart对象代表邮件本身，可以往里面添加文本、图片、附件等
     mm = MIMEMultipart('related')
     # 设置发送者,注意严格遵守格式,里面邮箱为发件人邮箱
@@ -35,17 +44,26 @@ def send_email(host: str, port: int, sender: str, auth_password: str, receivers:
     # 设置邮件头部内容
     mm["Subject"] = Header(subject, 'utf-8')
     # 添加附件
-    for image in wallpapers:
-        with open(image, 'rb') as f:
-            image_info = MIMEImage(f.read())
-            image_info.add_header(
-                'Content-Disposition',
-                'attachment',
-                filename=('utf-8', '', PurePath(image).name),
-            )
-            mm.attach(image_info)
+    with open(wallpaper, 'rb') as f:
+        image_data = f.read()
+        image_show = MIMEImage(image_data)
+        image_show.add_header('Content-ID', '<image>')
+        image_attachment = MIMEImage(image_data)
+        image_attachment.add_header(
+            'Content-Disposition',
+            'attachment',
+            filename=('utf-8', '', PurePath(wallpaper).name),
+        )
+        mm.attach(image_attachment)
     # 邮件正文
-    mm.attach(MIMEText('<p style="color:red">此邮件无需回复</p>', "html", "utf-8"))
+    mm.attach(image_show)
+    mm.attach(
+        MIMEText(
+            f'<p><img src="cid:image"></p><p style="color:black">{copyright}</p><p style="color:red">此邮件无需回复</p>',
+            "html",
+            "utf-8",
+        )
+    )
     # 创建SMTP对象
     smtp = smtplib.SMTP(host)
     # 设置发件人邮箱的域名和端口
